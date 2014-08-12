@@ -4,18 +4,21 @@
  * You'll have to figure out a way to export this function from
  * this file and include it in basic-server.js so that it actually works.
  * *Hint* Check out the node module documentation at http://nodejs.org/api/modules.html. */
+
+// require URL to obtain query string
 var url = require('url');
-// var queryString = require( "querystring" );
 
-var testObj = {
-  createdAt: new Date(),
-  objectId: "1",
-  roomname: "lobby",
-  text: "test update",
-  username: "testUser"
-};
+// create a test object for testing purposes
+// var testObj = {
+//   createdAt: new Date(),
+//   objectId: "1",
+//   roomname: "lobby",
+//   text: "test update",
+//   username: "testUser"
+// };
 
-var data = {results:[testObj]};
+// create data object to store all message results
+var data = {results:[]};
 
 exports.handleRequest = function(request, response) {
   /* the 'request' argument comes from nodes http module. It includes info about the
@@ -32,7 +35,7 @@ exports.handleRequest = function(request, response) {
    * below about CORS. */
   var headers = defaultCorsHeaders;
 
-  headers['Content-Type'] = "application/json";
+  headers['Content-Type'] = 'application/json';
 
   /* .writeHead() tells our server what HTTP status code to send back */
   response.writeHead(statusCode, headers);
@@ -41,41 +44,48 @@ exports.handleRequest = function(request, response) {
    * response.end() will be the body of the response - i.e. what shows
    * up in the browser.*/
 
-  // get query from URL to sort
+  // handle GET requests
   if (url.parse(request.url).pathname === '/classes/messages/') {
     if (request.method === 'GET') {
-      console.log("GET FIRED");
+      // get query from URL to sort
       var queryObj = url.parse(request.url, true).query;
-      console.log(queryObj.order);
 
+      // mimic Parse API sort method for reverse order
       if (queryObj.order) {
         if(queryObj.order.charAt(0) === '-') {
-          console.log('oh yeah');
-          console.log(data.results);
           data.results.sort(function(a, b) {
             return b.createdAt - a.createdAt;
           });
-          console.log(data.results);
         }
       }
-      // console.log(query);
 
+      // respond to request with stringified JSON representing results messages
+      console.log(data);
       response.end(JSON.stringify(data));
     }
 
-    if (request.method === 'POST') {
-      request.on("data", function(inputData) {
+    // handle POST requests
+    if (request.method === 'POST' || request.method === 'OPTIONS') {
+      request.on('data', function(inputData) {
 
-        console.log('data received');
+        // parse data from client
         var dataObj = JSON.parse(inputData);
+
+        // add objectID and createAt attributes
         dataObj.objectId = getObjectId();
         dataObj.createdAt = new Date();
 
+        // push message to results storage
         data.results.push(dataObj);
       });
+
+    response.writeHead(201, headers);
+    response.end();
     }
   }
-  response.end("Hello, World!");
+
+  response.writeHead(404, headers);
+  response.end();
 };
 
 /* These headers will allow Cross-Origin Resource Sharing (CORS).
